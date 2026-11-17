@@ -2,9 +2,6 @@
 
     uv run chainlit run app.py -w
 """
-import re
-from pathlib import Path
-
 import chainlit as cl
 from langchain.messages import HumanMessage
 from langgraph.types import Command
@@ -16,17 +13,17 @@ AUTOR = "Asistente"   # su avatar es public/avatars/asistente.png
 HUMANO = "Human in the loop"  # su avatar es public/avatars/human_in_the_loop.png
 # Cuando no elige fecha. No puede ser None ni {}: LangGraph no reanuda el grafo con esos valores.
 NINGUNA = {"ninguna": True}
-DIBUJOS = Path(__file__).parent / "public" / "apartamentos"  # la fachada y el plano de cada uno
 
 
 BIENVENIDA = """¡Hola! Soy el asistente de la **Inmobiliaria Señor Gato**.
 
-Te puedo ayudar con dos cosas:
+Te puedo ayudar con tres cosas:
 
-- **Recomendarte un apartamento.** Cuéntame si quieres comprar o arrendar, tu presupuesto y cuántas alcobas necesitas.
-- **Agendar una visita.** Dime el código del apartamento, el día, la hora y tu nombre.
+- **Recomendarte un apartamento.** Cuéntame tu presupuesto y cuántas alcobas necesitas.
+- **Mostrarte un apartamento.** Dime su número, por ejemplo *muéstrame el 101*.
+- **Agendar una visita.** Dime el número del apartamento, el día, la hora y tu nombre.
 
-Por ejemplo: *Quiero comprar. ¿Qué me recomiendas?*"""
+Por ejemplo: *Quiero comprar un apartamento. ¿Qué me recomiendas?*"""
 
 
 @cl.on_chat_start
@@ -41,16 +38,19 @@ async def preguntar_al_cliente(pregunta: str) -> str:
 
 
 async def elegir_fecha(pedido: dict) -> dict:
-    """Opciones: las reglas de horario, un botón por cada fecha libre y uno para cancelar."""
-    botones = [cl.Action(name="fecha", label=opcion["etiqueta"], payload=opcion) for opcion in pedido["opciones"]]
-    botones.append(cl.Action(name="cancelar", label="Cancelar", payload=NINGUNA))
+    """Opciones: las reglas y las fechas libres, un botón por fecha y uno para cancelar."""
+    botones = [
+        cl.Action(name="fecha", label=opcion["boton"], tooltip=opcion["etiqueta"], icon="calendar", payload=opcion)
+        for opcion in pedido["opciones"]
+    ]
+    botones.append(cl.Action(name="cancelar", label="Cancelar", icon="x", payload=NINGUNA))
     respuesta = await cl.AskActionMessage(content=pedido["mensaje"], actions=botones,
                                           author=AUTOR, timeout=ESPERA).send()
     return respuesta["payload"] if respuesta else NINGUNA
 
 
 async def confirmar_visita(resumen: str) -> str:
-    """Human in the loop: un cuadro aparte, con otro autor, que pregunta si está seguro.
+    """Confirmar: un cuadro aparte, con otro autor, que pregunta si está seguro.
     Devuelve «si», «otra» (ver otra fecha) o «cancelar»."""
     respuesta = await cl.AskActionMessage(
         content=f"### ¿Estás seguro?\n\n> {resumen}\n\nLa visita solo se guarda si confirmas.",
@@ -84,12 +84,6 @@ async def responder(mensaje: cl.Message):
             respuesta = await confirmar_visita(pedido["confirmar"])
         salida = await sistema.ainvoke(Command(resume=respuesta), config)
 
-    texto = salida["messages"][-1].text
-    await cl.Message(content=texto, author=AUTOR, elements=dibujos(texto)).send()
+    # La respuesta es markdown: las fichas, los listados y las fotos van en el mismo texto
+    await cl.Message(content=salida["messages"][-1].text, author=AUTOR).send()
 
-
-def dibujos(texto: str) -> list:
-    """Los dibujos de los apartamentos que el modelo nombra en su respuesta."""
-    codigos = dict.fromkeys(re.findall(r"SG-\d{3}", texto))  # sin repetidos, en orden
-    return [cl.Image(path=str(DIBUJOS / f"{codigo}.png"), name=codigo, display="inline")
-            for codigo in codigos if (DIBUJOS / f"{codigo}.png").exists()]

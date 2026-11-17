@@ -43,7 +43,7 @@ mismo orden y sus mismos temas. Si cambia un notebook, cambia su bloque en `tema
 - **Nada de código en pantalla.** Ni Python, ni terminales, ni JSON, ni nombres de funciones. El
   código vive en los notebooks.
 - **Poco texto.** Una frase de cierre por diapositiva, con una parte resaltada, y rótulos cortos.
-- **Sin «·» como separador.** Usa comas, dos puntos o el layout.
+- **Sin «·» como separador**, ni aquí ni en ningún lugar del repo (diagramas, notebooks, textos). Usa comas, dos puntos o el layout.
 - **Cada concepto abre con su analogía**, en tres tiempos: primero el problema que había
   (animado, con la frase en coral), después la escena que lo arregla y al final los rótulos pasan
   a ser los del concepto. Casi todo ocurre en una oficina; el system prompt va en un teatro, el

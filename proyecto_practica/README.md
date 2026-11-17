@@ -1,9 +1,10 @@
 # Proyecto: el asistente de Señor Gato
 
-Un chat de Chainlit para los clientes de la **Inmobiliaria Señor Gato**, una inmobiliaria ficticia de Medellín. Hace dos cosas:
+Un chat de Chainlit para los clientes de la **Inmobiliaria Señor Gato**, una inmobiliaria ficticia de Medellín. Hace tres cosas:
 
-- **Recomendar** apartamentos: pregunta lo que el cliente busca y le ofrece el que más le sirve.
+- **Recomendar** apartamentos para comprar (solo venta, nada de arriendo): pregunta lo que el cliente busca y le ofrece el que más le sirve.
 - **Agendar** visitas: muestra las reglas y las fechas libres, y el cliente confirma antes de guardar la visita. Al confirmar también puede ver otra fecha o cancelar.
+- **Ver** un apartamento: con su número (*muéstrame el 101*), el chat muestra su ficha y su foto.
 
 ![El asistente](../practica/assets/diagramas/proyecto.png)
 
@@ -11,7 +12,8 @@ Así lo dibuja LangGraph a partir del grafo compilado:
 
 ![El grafo de LangGraph](grafo.png)
 
-Cuando el asistente nombra un apartamento, el chat muestra su dibujo: la fachada y el plano. Los
+Cuando el asistente recomienda, cada apartamento sale con su ficha (la arma el código: precio,
+alcobas, mascotas y parqueadero) y su dibujo: la fachada y el plano. Los
 dibujos están en `public/apartamentos/` y salen de `uv run herramientas/apartamentos.py`, desde la
 raíz del repositorio. Las fechas que ofrece para visitar las calcula el código: cumplen las reglas
 y no están ocupadas.

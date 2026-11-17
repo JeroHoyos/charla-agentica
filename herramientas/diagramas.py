@@ -352,8 +352,8 @@ def _tabla(d, x0, y0, w, nombre, columnas, sello=None, color=TINTA):
 def tablas():
     d = Diagrama(250, leyenda=False)
     _tabla(d, 120, 30, 320, "apartamentos", (
-        ("PK", "codigo", "texto"), ("", "barrio", "texto"), ("", "negocio", "venta o arriendo"),
-        ("", "precio", "pesos"), ("", "alcobas", "número"), ("", "mascotas", "1 si las admite"),
+        ("PK", "codigo", "texto"), ("", "barrio", "texto"),
+        ("", "precio", "pesos de venta"), ("", "alcobas", "número"), ("", "mascotas", "1 si las admite"),
         ("", "parqueadero", "1 si tiene")),
         "la lee recomendar", TINTA)
     _tabla(d, 540, 30, 300, "visitas", (
@@ -586,33 +586,42 @@ def _tarjeta(d, clave, x, y, nombre, sub, tipo, sello, w=140, h=50):
 
 
 def proyecto():
-    d = Diagrama(450)
-    # Los carriles: entrada, router, las dos rutas en franjas y las salidas
-    _carril(d, 14, 14, 140, 446, "Entrada")
-    _carril(d, 148, 14, 280, 446, "01 · Router")
-    _carril(d, 288, 14, 806, 262, "Ruta A · Recomendar (encuesta en loop)", "a")
-    _carril(d, 288, 270, 806, 446, "Ruta B · Agendar (human in the loop)", "b")
-    _carril(d, 814, 14, 946, 446, "Salidas", "salida")
-    _tarjeta(d, "cliente", 77, 230, "Cliente", "un mensaje", "io", "chat", w=106)
-    _tarjeta(d, "router", 214, 230, "Router", "elige 1 de 2", "control", "router", w=112)
+    d = Diagrama(562)
+    # Los carriles: entrada, router, las tres rutas en franjas y las salidas
+    _carril(d, 14, 14, 140, 558, "Entrada")
+    _carril(d, 148, 14, 280, 558, "Router")
+    _carril(d, 288, 14, 806, 262, "Ruta A: Recomendar (encuesta en loop)", "a")
+    _carril(d, 288, 270, 806, 446, "Ruta B: Agendar", "b")
+    _carril(d, 288, 454, 806, 558, "Ruta C: Ver un apartamento", "a")
+    _carril(d, 814, 14, 946, 558, "Salidas", "salida")
+    _tarjeta(d, "cliente", 77, 286, "Cliente", "un mensaje", "io", "chat", w=106)
+    _tarjeta(d, "router", 214, 286, "Router", "elige 1 de 3", "control", "router", w=112)
     # Ruta A
     _tarjeta(d, "sql", 547, 70, "SQLite", "los apartamentos", "herramienta", "datos", h=44)
     _tarjeta(d, "encuesta", 380, 145, "Encuesta", "llena lo que sabe", "llm", "loop")
     _tarjeta(d, "buscar", 547, 145, "Buscar", "cuenta condiciones", "control", "código")
-    _tarjeta(d, "responder", 714, 145, "Responder", "exacto o cercano", "llm", "modelo")
+    _tarjeta(d, "responder", 714, 145, "Responder", "frase y fichas", "llm", "modelo")
     _tarjeta(d, "preguntar", 380, 228, "Preguntar", "el cliente responde", "humano", "interrupt", h=46)
     # Ruta B
-    _tarjeta(d, "sacar", 380, 345, "Sacar", "código, fecha y hora", "llm", "extraer")
-    _tarjeta(d, "opciones", 547, 345, "Opciones", "reglas y fechas libres", "control", "interrupt")
-    _tarjeta(d, "confirmar", 714, 345, "Confirmar", "sí, otra fecha o no", "humano", "hitl")
+    _tarjeta(d, "sacar", 420, 345, "Sacar", "número, fecha y hora", "llm", "extraer")
+    _tarjeta(d, "opciones", 670, 345, "Opciones", "reglas y fechas libres", "control", "interrupt")
+    # Ruta C
+    _tarjeta(d, "numeros", 420, 516, "Sacar", "los números", "llm", "extraer", h=46)
+    _tarjeta(d, "fichas", 670, 516, "Fichas", "datos y foto", "control", "código", h=46)
     # Salidas
-    _tarjeta(d, "recomendacion", 880, 145, "Recomienda", "exacto o cercano", "io", "salida a", w=116)
+    _tarjeta(d, "recomendacion", 880, 145, "Recomienda", "fichas y fotos", "io", "salida a", w=116)
     _tarjeta(d, "visita", 880, 345, "Visita", "programada", "io", "salida b", w=116)
     _tarjeta(d, "sin_visita", 880, 412, "Sin visita", "no se guarda", "io", "salida b", w=116, h=48)
+    _tarjeta(d, "ficha", 880, 516, "Ficha", "con su foto", "io", "salida c", w=116, h=46)
     # Las flechas
     d.flecha("cliente", "router")
-    d.flecha("router", "encuesta")
-    d.flecha("router", "sacar")
+    # El router se abre en el hueco entre carriles, para no cruzar Preguntar ni los títulos
+    xr, yr = d.punto("router", "r")
+    d.ruta((xr, yr), (284, yr), (284, 145), d.punto("encuesta", "l"))
+    d.ruta((284, yr), (284, 345), d.punto("sacar", "l"))
+    d.ruta((284, 345), (284, 516), d.punto("numeros", "l"))
+    d.flecha("numeros", "fichas")
+    d.flecha("fichas", "ficha")
     d.flecha("encuesta", "buscar")
     d.flecha("buscar", "responder")
     d.flecha("responder", "recomendacion")
@@ -623,15 +632,11 @@ def proyecto():
     d.ruta(d.punto("preguntar", "t", 30), d.punto("encuesta", "b", 30), color=LILA)
     d.texto("hasta tener lo mínimo, máximo 3 veces", 465, 228, 11, GRIS, alinear="left")
     d.flecha("sacar", "opciones")
-    d.flecha("opciones", "confirmar")
-    d.flecha("confirmar", "visita")
-    # En Confirmar el cliente puede volver a Opciones por otra fecha o cancelar
-    (xc, yc), (xo, yo) = d.punto("confirmar", "t"), d.punto("opciones", "t", -30)
-    d.ruta((xc, yc), (xc, 302), (xo, 302), (xo, yo), color=LILA)
-    d.texto("otra fecha", 630, 292, 10.5, LILA, MONO)
-    xc, yc = d.punto("confirmar", "b")
-    d.ruta((xc, yc), (xc, 412), d.punto("sin_visita", "l"), color=CORAL, punteada=True)
-    d.texto("cancelar o sin fecha", 704, 412, 10.5, CORAL, MONO, "right")
+    d.flecha("opciones", "visita")
+    # En Opciones el cliente puede cancelar
+    xo, yo = d.punto("opciones", "b")
+    d.ruta((xo, yo), (xo, 412), d.punto("sin_visita", "l"), color=CORAL, punteada=True)
+    d.texto("cancelar o sin fecha", xo - 10, 400, 10.5, CORAL, MONO, "right")
     return d
 
 

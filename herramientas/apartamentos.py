@@ -3,7 +3,7 @@
 # ///
 """Dibuja cada apartamento de `proyecto_practica/inmobiliaria.sql` como una caricatura: la
 fachada a la izquierda y el plano a la derecha. Sale de los datos de su fila: las alcobas, si
-tiene parqueadero (un carro), si admite mascotas (un gato) y si es venta o arriendo (el letrero).
+tiene parqueadero (un carro), si admite mascotas (un gato) y su precio de venta (el letrero).
 
 Uso: uv run herramientas/apartamentos.py"""
 
@@ -78,10 +78,8 @@ def gato(ax, x, y):
 def letrero(ax, apto, x, y):
     ax.add_patch(Rectangle((x + 77, 70), 6, y - 70, fc=PUERTA, ec="none"))  # el poste: el carro lo tapa
     caja(ax, x, y, 160, 62, "white", radio=8)
-    negocio = "SE VENDE" if apto["negocio"] == "venta" else "SE ARRIENDA"
-    texto(ax, negocio, x + 80, y + 42, 13, NOMBRE, "#d62828")
-    precio = (f"{apto['precio'] / 1_000_000:,.0f} millones" if apto["negocio"] == "venta"
-              else f"{apto['precio']:,} al mes").replace(",", ".")
+    texto(ax, "SE VENDE", x + 80, y + 42, 13, NOMBRE, "#d62828")
+    precio = f"{apto['precio'] / 1_000_000:,.0f} millones".replace(",", ".")
     texto(ax, precio, x + 80, y + 18, 12)
 
 
@@ -173,7 +171,7 @@ def dibujar(apto):
     detalles = [f"{apto['alcobas']} alcoba{'s' if apto['alcobas'] > 1 else ''}",
                 "parqueadero" if apto["parqueadero"] else "sin parqueadero",
                 "admite mascotas" if apto["mascotas"] else "sin mascotas"]
-    fig.text(0.02, 0.94, f"{apto['codigo']}, {apto['barrio']}", fontsize=22, fontproperties=NOMBRE, color=TRAZO)
+    fig.text(0.02, 0.94, f"Apartamento {apto['codigo']}, {apto['barrio']}", fontsize=22, fontproperties=NOMBRE, color=TRAZO)
     fig.text(0.98, 0.94, ", ".join(detalles), fontsize=14, fontproperties=TEXTO, color=TRAZO, ha="right")
     fig.savefig(SALIDA / f"{apto['codigo']}.png")
     plt.close(fig)
