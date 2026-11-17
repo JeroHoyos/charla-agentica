@@ -1,0 +1,10 @@
+__pycache__/
+.env
+.venv/
+
+# La base de SQLite: se crea al arrancar
+inmobiliaria.db
+
+# Archivos que Chainlit genera al correr
+.files/
+.chainlit/translations/

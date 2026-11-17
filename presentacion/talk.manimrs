@@ -1,0 +1,8 @@
+{
+  "manimrs": 1,
+  "title": "De Prompts a Agentes",
+  "about": "Inteligencia Artificial Agéntica con Python. Taller de dos horas del Semillero Aperture en la Semana de Sistemas (miércoles 18 de noviembre, 2:00 a 4:00 p. m., aula M3-224), para estudiantes que programan en Python. Enseña a diseñar con patrones agénticos (una llamada, LLM aumentado, workflows, agentes, producción) con LangChain. Las diapositivas explican conceptos con analogías animadas, sin código; el código está en los notebooks de practica/.",
+  "author": "",
+  "language": "es",
+  "resolution": "1080p"
+}

@@ -1,0 +1,12 @@
+[project]
+name = "charla-agentica-proyecto"
+version = "0.1.0"
+description = "El proyecto del taller «De Prompts a Agentes»: un asistente con LangGraph, SQL y Chainlit"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "chainlit>=2.0",
+    "python-dotenv>=1.2",
+    "langchain>=1.4",
+    "langchain-google-genai>=4.0",
+    "langgraph>=1.2",
+]

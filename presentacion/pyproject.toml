@@ -1,0 +1,31 @@
+[project]
+name = "charla-agentica-presentacion"
+version = "0.1.0"
+description = "De Prompts a Agentes: Inteligencia Artificial Agéntica con Python (Semana de Sistemas, Aperture), animada con Manim Slides."
+requires-python = ">=3.13"
+dependencies = [
+    "manim>=0.18,<0.22",  # 0.22 quitó write_to_movie, que manim-slides aún usa
+    "manim-slides[pyqt6]>=5.1",
+    "numpy>=1.26",
+]
+
+[tool.uv]
+# Smart App Control de Windows bloquea binarios de av 18.1.0 y scipy 1.18.1
+# ("An Application Control policy has blocked this file"); las versiones previas cargan bien.
+constraint-dependencies = [
+    "av<18.1",
+    "scipy<1.18.1",
+    # Pillow 13 rechaza Image.fromarray(..., mode="RGBA"), que manim usa para imágenes.
+    "pillow<13",
+]
+
+[dependency-groups]
+dev = [
+    "complexipy>=8.1.0",
+]
+
+[tool.complexipy]
+# Complejidad cognitiva máxima por función (por defecto es 15). Correr con: uv run complexipy .
+max-complexity-allowed = 10
+failed = true
+sort = "desc"

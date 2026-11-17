@@ -1,0 +1,28 @@
+# Salida generada por Manim / manim-slides
+media/
+slides/
+diapos/
+
+# Exportaciones de la presentación (uv run manim-slides convert …)
+*.pptx
+*.html
+*.mp4
+
+# Python
+__pycache__/
+*.pyc
+
+# Entornos
+.venv/
+.uv/
+.claude/
+
+# Claves
+.env
+
+# Cachés de herramientas (ruff, complexipy)
+.ruff_cache/
+.complexipy_cache/
+
+# Las bases de SQLite (se recrean al correr los notebooks y el proyecto)
+*.db
