@@ -5,8 +5,7 @@
 - Ver: el modelo saca los números de los apartamentos que pide el cliente y el código muestra
   la ficha y la foto de cada uno.
 - Agendar: el modelo saca los datos de la visita. Opciones muestra las reglas de horario y las
-  fechas libres para que el cliente elija, y Confirmar le pregunta si está seguro antes de
-  guardar: puede agendar, volver a Opciones por otra fecha o cancelar.
+  fechas libres para que el cliente elija, y Guardar programa la visita en la fecha elegida.
 
 El checkpointer guarda el historial de cada chat, así que «ese» o «el primero» se entienden.
 """
@@ -45,7 +44,6 @@ class Estado(MessagesState):
     preguntas: int         # cuántas veces le hemos preguntado en esta encuesta
     visita: dict | None    # los datos de la visita que pidió el cliente
     eleccion: dict | None  # la fecha que eligió entre las opciones
-    otra_fecha: bool       # en Confirmar pidió ver otra fecha
 
 
 EMOJIS = re.compile(r" ?[\U0001F000-\U0001FAFF\u2600-\u27BF\uFE0F\u200D]+")
@@ -74,8 +72,10 @@ def listado(lineas: list[str]) -> str:
 class Ruta(BaseModel):
     ruta: Literal["recomendar", "ver", "agendar"] = Field(
         description="recomendar: busca apartamento o responde a la encuesta (presupuesto, alcobas, "
-                    "barrio, mascotas, parqueadero). "
-                    "ver: pregunta por apartamentos que ya conoce (muéstrame el 101, cuánto vale el primero). "
+                    "barrio, mascotas, parqueadero). Si describe el apartamento por precio, alcobas u "
+                    "otra característica, es recomendar aunque diga «ver» (quiero ver uno de 500 millones). "
+                    "ver: pide un apartamento por su número o por su lugar en la lista que ya le mostraron "
+                    "(muéstrame el 101, cuánto vale el primero). "
                     "agendar: quiere visitar un apartamento.")
 
 
@@ -84,7 +84,7 @@ def router(estado: Estado):
         SystemMessage("Clasifica el último mensaje del cliente de una inmobiliaria."),
         *estado["messages"][-6:],
     ])
-    return {"ruta": decision.ruta, "preguntas": 0, "visita": None, "eleccion": None, "otra_fecha": False}
+    return {"ruta": decision.ruta, "preguntas": 0, "visita": None, "eleccion": None}
 
 
 def elegir_ruta(estado: Estado):
@@ -315,21 +315,13 @@ def opciones(estado: Estado):
     return {"visita": visita, "eleccion": eleccion}
 
 
-def confirmar(estado: Estado):
-    """Antes de guardar, el cliente elige entre agendar, ver otra fecha o cancelar."""
+def guardar(estado: Estado):
+    """Guarda la visita en la fecha que eligió. Si no eligió ninguna, no se guarda nada."""
     visita, eleccion = estado["visita"], estado["eleccion"]
-    if not eleccion:  # no hubo apartamento o no eligió fecha
-        return {**responder(CANCELADA), "otra_fecha": False}
+    if not eleccion:  # no hubo apartamento o eligió «Cancelar»
+        return responder(CANCELADA)
+
     nombre = visita["nombre"] or "Cliente"
-    resumen = f"Visita al apartamento {visita['codigo']} el {eleccion['etiqueta']}, a nombre de {nombre}."
-
-    decision = interrupt({"confirmar": resumen})
-
-    if decision == "otra":  # vuelve a Opciones, sin poner de primera la fecha que pidió
-        return {"otra_fecha": True, "visita": {**visita, "fecha": None, "hora": None}}
-    if decision != "si":
-        return {**responder(CANCELADA), "otra_fecha": False}
-
     numero = guardar_visita(visita["codigo"], nombre, date.fromisoformat(eleccion["fecha"]), eleccion["hora"])
     detalle = listado([
         f"**Apartamento:** {visita['codigo']}",
@@ -337,12 +329,7 @@ def confirmar(estado: Estado):
         f"**A nombre de:** {nombre}",
         f"**Número de solicitud:** {numero}",
     ])
-    return {**responder(f"### Tu visita ya está programada\n{detalle}"), "otra_fecha": False}
-
-
-def decidio(estado: Estado):
-    """La arista de Confirmar: si pidió otra fecha, vuelve a Opciones."""
-    return "opciones" if estado["otra_fecha"] else END
+    return responder(f"### Tu visita ya está programada\n{detalle}")
 
 
 # El grafo
@@ -356,7 +343,7 @@ grafo.add_node("recomendar", recomendar)
 grafo.add_node("ver", ver)
 grafo.add_node("agendar", agendar)
 grafo.add_node("opciones", opciones)
-grafo.add_node("confirmar", confirmar)
+grafo.add_node("guardar", guardar)
 
 grafo.add_edge(START, "router")
 grafo.add_conditional_edges("router", elegir_ruta, ["encuesta", "ver", "agendar"])
@@ -368,8 +355,8 @@ grafo.add_edge("recomendar", END)
 
 # Ruta B: agendar
 grafo.add_edge("agendar", "opciones")
-grafo.add_edge("opciones", "confirmar")
-grafo.add_conditional_edges("confirmar", decidio, ["opciones", END])
+grafo.add_edge("opciones", "guardar")
+grafo.add_edge("guardar", END)
 
 # Ruta C: ver
 grafo.add_edge("ver", END)

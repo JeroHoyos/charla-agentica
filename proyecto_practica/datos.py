@@ -104,7 +104,7 @@ def fechas_libres(codigo: str, cuantas: int = 3) -> list[tuple[date, str]]:
 
 
 def guardar_visita(codigo: str, cliente: str, fecha: date, hora: str) -> int:
-    """La única escritura en la base. Solo se llama después de que el cliente confirma."""
+    """La única escritura en la base. Solo se llama cuando el cliente elige una fecha."""
     with conectar() as conexion:
         cursor = conexion.execute(
             "INSERT INTO visitas (codigo, cliente, fecha, hora) VALUES (?, ?, ?, ?)",

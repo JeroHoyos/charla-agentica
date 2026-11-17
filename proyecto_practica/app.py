@@ -10,7 +10,6 @@ from sistema import sistema
 
 ESPERA = 600          # segundos que el chat espera una respuesta
 AUTOR = "Asistente"   # su avatar es public/avatars/asistente.png
-HUMANO = "Human in the loop"  # su avatar es public/avatars/human_in_the_loop.png
 # Cuando no elige fecha. No puede ser None ni {}: LangGraph no reanuda el grafo con esos valores.
 NINGUNA = {"ninguna": True}
 
@@ -19,8 +18,8 @@ BIENVENIDA = """¡Hola! Soy el asistente de la **Inmobiliaria Señor Gato**.
 
 Te puedo ayudar con tres cosas:
 
-- **Recomendarte un apartamento.** Cuéntame tu presupuesto y cuántas alcobas necesitas.
-- **Mostrarte un apartamento.** Dime su número, por ejemplo *muéstrame el 101*.
+- **Recomendarte un apartamento.** Cuéntame tu presupuesto y qué comodidades necesitas.
+- **Obtener más información de un apartamento.** Dime su número, por ejemplo *muéstrame el 101*.
 - **Agendar una visita.** Dime el número del apartamento, el día, la hora y tu nombre.
 
 Por ejemplo: *Quiero comprar un apartamento. ¿Qué me recomiendas?*"""
@@ -49,22 +48,6 @@ async def elegir_fecha(pedido: dict) -> dict:
     return respuesta["payload"] if respuesta else NINGUNA
 
 
-async def confirmar_visita(resumen: str) -> str:
-    """Confirmar: un cuadro aparte, con otro autor, que pregunta si está seguro.
-    Devuelve «si», «otra» (ver otra fecha) o «cancelar»."""
-    respuesta = await cl.AskActionMessage(
-        content=f"### ¿Estás seguro?\n\n> {resumen}\n\nLa visita solo se guarda si confirmas.",
-        actions=[
-            cl.Action(name="si", label="Sí, agendar", payload={"decision": "si"}),
-            cl.Action(name="otra", label="Ver otra fecha", payload={"decision": "otra"}),
-            cl.Action(name="cancelar", label="Cancelar", payload={"decision": "cancelar"}),
-        ],
-        author=HUMANO,
-        timeout=ESPERA,
-    ).send()
-    return respuesta["payload"]["decision"] if respuesta else "cancelar"
-
-
 @cl.on_message
 async def responder(mensaje: cl.Message):
     config = {
@@ -73,15 +56,13 @@ async def responder(mensaje: cl.Message):
     }
     salida = await sistema.ainvoke({"messages": [HumanMessage(mensaje.content)]}, config)
 
-    # El grafo se detiene (interrupt) cuando espera al cliente: una respuesta, una fecha o un sí
+    # El grafo se detiene (interrupt) cuando espera al cliente: una respuesta o una fecha
     while "__interrupt__" in salida:
         pedido = salida["__interrupt__"][0].value
-        if "pregunta" in pedido:
-            respuesta = await preguntar_al_cliente(pedido["pregunta"])
-        elif "opciones" in pedido:
+        if "opciones" in pedido:
             respuesta = await elegir_fecha(pedido)
         else:
-            respuesta = await confirmar_visita(pedido["confirmar"])
+            respuesta = await preguntar_al_cliente(pedido["pregunta"])
         salida = await sistema.ainvoke(Command(resume=respuesta), config)
 
     # La respuesta es markdown: las fichas, los listados y las fotos van en el mismo texto

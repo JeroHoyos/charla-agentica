@@ -17,7 +17,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
-from matplotlib.patches import FancyBboxPatch, Polygon
+from matplotlib.patches import Arc, Ellipse, FancyBboxPatch, Polygon, Rectangle
 
 RAIZ = Path(__file__).parent.parent
 SALIDA = RAIZ / "practica" / "assets" / "diagramas"
@@ -94,6 +94,21 @@ class Diagrama:
         self.cajas[clave] = (x, y, w, h)
         if tipo not in self.usados:
             self.usados.append(tipo)
+
+    def base(self, clave, x, y, w=56, h=40):
+        """El cilindro de una base de datos, centrado en (x, y)."""
+        relleno, borde, *_ = TIPOS["herramienta"]
+        ry, lw = h / 7, 1.6 * PT
+        arriba, abajo = y - h / 2 + ry, y + h / 2 - ry
+        self.ax.add_patch(Ellipse((x, abajo), w, 2 * ry, fc=relleno, ec=borde, lw=lw))
+        self.ax.add_patch(Rectangle((x - w / 2, arriba), w, abajo - arriba, fc=relleno, ec="none"))
+        self.ax.plot([x - w / 2] * 2, [arriba, abajo], color=borde, lw=lw)
+        self.ax.plot([x + w / 2] * 2, [arriba, abajo], color=borde, lw=lw)
+        self.ax.add_patch(Arc((x, y), w, 2 * ry, theta1=0, theta2=180, ec=borde, lw=lw))
+        self.ax.add_patch(Ellipse((x, arriba), w, 2 * ry, fc=relleno, ec=borde, lw=lw))
+        self.cajas[clave] = (x, y, w, h)
+        if "herramienta" not in self.usados:
+            self.usados.append("herramienta")
 
     def nota(self, contenido, x, y, w, color=CORAL):
         """Una franja punteada con una advertencia o una regla."""
@@ -449,16 +464,13 @@ def guardrail_entrada():
 def guardrail_salida():
     d = Diagrama(250)
     d.fila(80, (("modelo", "Modelo", "redacta", "llm"),
-                ("estructura", "Estructura", "el esquema", "guardrail"),
-                ("politica", "Política", "sin teléfonos", "guardrail"),
-                ("negocio", "Negocio", "60 palabras", "guardrail"),
-                ("cliente", "Cliente", None, "io")), **FILA6)
-    d.nodo("reintentar", 580, 200, "Reintentar con el error", "máximo 3 intentos", "bloqueo",
+                ("revisar", "Revisar", "sin teléfonos", "guardrail"),
+                ("cliente", "Cliente", None, "io")), x0=180, x1=780, w=170)
+    d.nodo("reintentar", 400, 200, "Reintentar con el error", "máximo 3 intentos", "bloqueo",
            w=300)
-    d.nodo("segura", 840, 200, "Respuesta segura", "si se acaban", "control", w=150)
-    for clave in ("politica", "negocio"):
-        x, y = d.punto(clave, "b")
-        d.ruta((x, y), (x, 173), color=CORAL, punteada=True)
+    d.nodo("segura", 720, 200, "Respuesta segura", "si se acaban", "control", w=170)
+    x, y = d.punto("revisar", "b")
+    d.ruta((x, y), (x, 173), color=CORAL, punteada=True)
     xm, ym = d.punto("modelo", "b")
     d.ruta(d.punto("reintentar", "l"), (xm, 200), (xm, ym), color=CORAL, punteada=True,
            etiqueta="feedback")
@@ -480,21 +492,21 @@ def secuencial():
 
 def paralelo():
     d = Diagrama(250)
-    d.nodo("ficha", 100, 126, "Ficha", w=130)
+    d.nodo("hoja", 100, 126, "Hoja de vida", w=150)
     d.nodo("juntar", 650, 126, "Juntar", "suma los informes", "control", w=180, h=62)
-    d.nodo("concepto", 870, 126, "Concepto", w=130)
-    _abanico(d, "ficha", (("ab", 52, "Abogado", "riesgos legales"),
-                          ("in", 126, "Ingeniero", "estado físico"),
-                          ("an", 200, "Analista", "precio por m²")), "juntar", 370)
-    d.flecha("juntar", "concepto")
+    d.nodo("mejoras", 870, 126, "Mejoras", w=130)
+    _abanico(d, "hoja", (("te", 52, "Técnico", "proyectos y habilidades"),
+                         ("re", 126, "Redacción", "ortografía"),
+                         ("fo", 200, "Formato", "orden y largo")), "juntar", 380)
+    d.flecha("juntar", "mejoras")
     return d
 
 
 def orquestador():
     d = Diagrama(270)
     d.nodo("pedido", 85, 126, "Pedido", w=120)
-    d.nodo("planear", 285, 126, "Orquestador", "planea al ejecutar", "control", w=190, h=62)
-    d.nodo("sintetizar", 820, 126, "Sintetizador", "una respuesta", "control", w=180, h=62)
+    d.nodo("planear", 285, 126, "Orquestador", "divide el pedido", "llm", w=190, h=62)
+    d.nodo("sintetizar", 820, 126, "Respuestas", w=150)
     d.flecha("pedido", "planear")
     _abanico(d, "planear", (("w1", 52, "Worker", "subtarea 1"),
                             ("w2", 126, "Worker", "subtarea 2"),
@@ -511,18 +523,18 @@ def bucle_critico():
     xc, yc = d.punto("criticar", "b")
     xe, ye = d.punto("escribir", "b")
     d.ruta((xc, yc), (xc, 172), (xe, 172), (xe, ye), color=CORAL, punteada=True,
-           etiqueta="qué cambiar, máximo 3 vueltas")
+           etiqueta="qué cambiar, máximo 4 vueltas")
     d.texto("aprobado", 721, 40, 10.5, VERDE, MONO)
     return d
 
 
 def bucle_agentico():
     d = Diagrama(280)
-    d.nota("El sistema controla: qué herramientas hay, sus permisos y cuántos pasos (8)", 560, 40,
+    d.nota("El sistema controla: qué herramientas hay, sus permisos y cuántos pasos (5)", 560, 40,
            620)
     d.nodo("tarea", 120, 140, "Pregunta", w=140)
     d.nodo("modelo", 420, 140, "Modelo", "decide la acción", "llm", w=190, h=66)
-    d.nodo("herramientas", 780, 140, "Herramientas", "buscar y calcular la cuota",
+    d.nodo("herramientas", 780, 140, "Herramientas", "buscar apartamentos",
            "herramienta", w=260, h=66)
     d.nodo("final", 420, 246, "Respuesta", w=190, h=46)
     d.flecha("tarea", "modelo")
@@ -552,7 +564,7 @@ def memoria_largo_plazo():
     d = Diagrama(230)
     d.nodo("corto", 150, 90, "Corto plazo", "el historial", "herramienta", w=220, h=62)
     d.nodo("agente", 480, 90, "Agente", None, "llm", w=170, h=62)
-    d.nodo("largo", 810, 90, "Largo plazo", "un store por cliente", "herramienta", w=220, h=62)
+    d.nodo("largo", 810, 90, "Largo plazo", "una ficha por cliente", "herramienta", w=220, h=62)
     d.flecha("corto", "agente", etiqueta="contexto")
     d.flecha("largo", "agente", etiqueta="recupera")
     xa, ya = d.punto("agente", "b")
@@ -586,47 +598,53 @@ def _tarjeta(d, clave, x, y, nombre, sub, tipo, sello, w=140, h=50):
 
 
 def proyecto():
-    d = Diagrama(562)
+    d = Diagrama(624)
     # Los carriles: entrada, router, las tres rutas en franjas y las salidas
-    _carril(d, 14, 14, 140, 558, "Entrada")
-    _carril(d, 148, 14, 280, 558, "Router")
+    _carril(d, 14, 14, 140, 620, "Entrada")
+    _carril(d, 148, 14, 280, 620, "Router")
     _carril(d, 288, 14, 806, 262, "Ruta A: Recomendar (encuesta en loop)", "a")
-    _carril(d, 288, 270, 806, 446, "Ruta B: Agendar", "b")
-    _carril(d, 288, 454, 806, 558, "Ruta C: Ver un apartamento", "a")
-    _carril(d, 814, 14, 946, 558, "Salidas", "salida")
-    _tarjeta(d, "cliente", 77, 286, "Cliente", "un mensaje", "io", "chat", w=106)
-    _tarjeta(d, "router", 214, 286, "Router", "elige 1 de 3", "control", "router", w=112)
+    _carril(d, 288, 270, 806, 470, "Ruta B: Agendar", "b")
+    _carril(d, 288, 478, 806, 620, "Ruta C: Ver un apartamento", "a")
+    _carril(d, 814, 14, 946, 620, "Salidas", "salida")
+    _tarjeta(d, "cliente", 77, 317, "Cliente", "un mensaje", "io", "chat", w=106)
+    _tarjeta(d, "router", 214, 317, "Router", "elige 1 de 3", "control", "router", w=112)
     # Ruta A
-    _tarjeta(d, "sql", 547, 70, "SQLite", "los apartamentos", "herramienta", "datos", h=44)
+    d.base("base_a", 547, 72)
     _tarjeta(d, "encuesta", 380, 145, "Encuesta", "llena lo que sabe", "llm", "loop")
     _tarjeta(d, "buscar", 547, 145, "Buscar", "cuenta condiciones", "control", "código")
     _tarjeta(d, "responder", 714, 145, "Responder", "frase y fichas", "llm", "modelo")
     _tarjeta(d, "preguntar", 380, 228, "Preguntar", "el cliente responde", "humano", "interrupt", h=46)
     # Ruta B
-    _tarjeta(d, "sacar", 420, 345, "Sacar", "número, fecha y hora", "llm", "extraer")
-    _tarjeta(d, "opciones", 670, 345, "Opciones", "reglas y fechas libres", "control", "interrupt")
+    d.base("base_b", 670, 304)
+    _tarjeta(d, "sacar", 420, 380, "Sacar", "número, fecha y hora", "llm", "extraer")
+    _tarjeta(d, "opciones", 670, 380, "Opciones", "reglas y fechas libres", "control", "interrupt")
     # Ruta C
-    _tarjeta(d, "numeros", 420, 516, "Sacar", "los números", "llm", "extraer", h=46)
-    _tarjeta(d, "fichas", 670, 516, "Fichas", "datos y foto", "control", "código", h=46)
+    d.base("base_c", 670, 520)
+    _tarjeta(d, "numeros", 420, 584, "Sacar", "los números", "llm", "extraer", h=46)
+    _tarjeta(d, "fichas", 670, 584, "Fichas", "datos y foto", "control", "código", h=46)
     # Salidas
     _tarjeta(d, "recomendacion", 880, 145, "Recomienda", "fichas y fotos", "io", "salida a", w=116)
-    _tarjeta(d, "visita", 880, 345, "Visita", "programada", "io", "salida b", w=116)
-    _tarjeta(d, "sin_visita", 880, 412, "Sin visita", "no se guarda", "io", "salida b", w=116, h=48)
-    _tarjeta(d, "ficha", 880, 516, "Ficha", "con su foto", "io", "salida c", w=116, h=46)
+    _tarjeta(d, "visita", 880, 380, "Visita", "programada", "io", "salida b", w=116)
+    _tarjeta(d, "sin_visita", 880, 442, "Sin visita", "no se guarda", "io", "salida b", w=116, h=44)
+    _tarjeta(d, "ficha", 880, 584, "Ficha", "con su foto", "io", "salida c", w=116, h=46)
     # Las flechas
     d.flecha("cliente", "router")
     # El router se abre en el hueco entre carriles, para no cruzar Preguntar ni los títulos
     xr, yr = d.punto("router", "r")
     d.ruta((xr, yr), (284, yr), (284, 145), d.punto("encuesta", "l"))
-    d.ruta((284, yr), (284, 345), d.punto("sacar", "l"))
-    d.ruta((284, 345), (284, 516), d.punto("numeros", "l"))
+    d.ruta((284, yr), (284, 380), d.punto("sacar", "l"))
+    d.ruta((284, 380), (284, 584), d.punto("numeros", "l"))
     d.flecha("numeros", "fichas")
     d.flecha("fichas", "ficha")
     d.flecha("encuesta", "buscar")
     d.flecha("buscar", "responder")
     d.flecha("responder", "recomendacion")
-    d.baja("sql", "buscar")
-    d.texto("filas", 555, 105, 10.5, GRIS, MONO, "left")
+    # Cada nodo que lee la base la tiene encima
+    for base, nodo, dice in (("base_a", "buscar", "filas"), ("base_b", "opciones", "fechas"),
+                             ("base_c", "fichas", "fila")):
+        d.baja(base, nodo)
+        x, y0 = d.punto(base, "b")
+        d.texto(dice, x - 8, (y0 + d.punto(nodo, "t")[1]) / 2, 10.5, GRIS, MONO, "right")
     d.ruta(d.punto("encuesta", "b", -30), d.punto("preguntar", "t", -30), color=CORAL)
     d.texto("falta", 344, 186, 10.5, CORAL, MONO, "right")
     d.ruta(d.punto("preguntar", "t", 30), d.punto("encuesta", "b", 30), color=LILA)
@@ -635,8 +653,8 @@ def proyecto():
     d.flecha("opciones", "visita")
     # En Opciones el cliente puede cancelar
     xo, yo = d.punto("opciones", "b")
-    d.ruta((xo, yo), (xo, 412), d.punto("sin_visita", "l"), color=CORAL, punteada=True)
-    d.texto("cancelar o sin fecha", xo - 10, 400, 10.5, CORAL, MONO, "right")
+    d.ruta((xo, yo), (xo, 442), d.punto("sin_visita", "l"), color=CORAL, punteada=True)
+    d.texto("cancelar o sin fecha", xo - 10, 430, 10.5, CORAL, MONO, "right")
     return d
 
 
